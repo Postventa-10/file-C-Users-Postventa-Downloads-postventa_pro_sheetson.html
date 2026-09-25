@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostVenta Pro · Gestión de Reclamos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  :root{ color-scheme: dark; }
+  body{
+    background-color:#131315;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(249,115,22,0.06), transparent 40%),
+      radial-gradient(circle at 100% 100%, rgba(249,115,22,0.04), transparent 45%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+  }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:#1c1c1e; }
+  ::-webkit-scrollbar-thumb{ background:#3f3f46; border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover{ background:#f97316; }
+
+  .tab-btn{ transition: all .15s ease; color:#a1a1aa; border-bottom:2px solid transparent; }
+  .tab-btn.active{ color:#fff; border-bottom:2px solid #f97316; }
+  .tab-btn:hover:not(.active){ color:#e4e4e7; }
+
+  .field-label{ font-size:.72rem; letter-spacing:.02em; color:#a1a1aa; margin-bottom:.3rem; display:block; }
+  .field-input, .field-select, .field-textarea{
+    width:100%; background:#1c1c1e; border:1px solid #3f3f46; border-radius:.55rem;
+    padding:.6rem .75rem; color:#f4f4f5; font-size:.875rem; outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus{
+    border-color:#f97316; box-shadow:0 0 0 3px rgba(249,115,22,0.18);
+  }
+  .field-input:disabled, .field-select:disabled, .field-textarea:disabled{ opacity:.6; cursor:not-allowed; }
+  .field-input::placeholder, .field-textarea::placeholder{ color:#6b6b70; }
+
+  .btn-primary{ background:#f97316; color:#141414; font-weight:600; border-radius:.55rem; padding:.6rem 1.1rem; transition:background .15s ease, transform .1s ease; }
+  .btn-primary:hover{ background:#fb923c; }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .btn-outline{ border:1px solid #f97316; color:#f97316; border-radius:.55rem; padding:.55rem 1rem; font-weight:600; transition:background .15s ease; background:transparent; }
+  .btn-outline:hover{ background:rgba(249,115,22,0.1); }
+
+  .btn-ghost{ color:#d4d4d8; border:1px solid #3f3f46; border-radius:.55rem; padding:.55rem .9rem; transition:background .15s ease; }
+  .btn-ghost:hover{ background:#26262a; }
+
+  .btn-icon{ width:2.2rem; height:2.2rem; display:flex; align-items:center; justify-content:center; border-radius:999px; border:1px solid #f97316; color:#f97316; font-weight:700; font-size:.8rem; transition:background .15s ease; }
+  .btn-icon:hover{ background:rgba(249,115,22,0.12); }
+
+  .card{ background:#19191b; border:1px solid #2c2c30; border-radius:.9rem; }
+
+  .badge{ display:inline-flex; align-items:center; gap:.3rem; font-size:.7rem; font-weight:600; padding:.2rem .55rem; border-radius:999px; white-space:nowrap; }
+  .row-urgent{ background:rgba(249,115,22,0.06) !important; box-shadow: inset 3px 0 0 0 #ef4444; }
+  .pulse-dot{ width:.45rem; height:.45rem; border-radius:999px; background:#ef4444; }
+  .sync-dot{ width:.5rem; height:.5rem; border-radius:999px; display:inline-block; }
+
+  table thead th{ position:sticky; top:0; background:#1c1c1e; z-index:5; }
+  tbody tr{ border-bottom:1px solid #232326; }
+  tbody tr:hover{ background:#1e1e21; }
+
+  .modal-backdrop{ background:rgba(0,0,0,0.65); backdrop-filter: blur(2px); }
+
+  .section-title{ font-size:.95rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:.5rem; }
+  .kpi-value{ font-size:1.65rem; font-weight:700; color:#fff; letter-spacing:-.01em; }
+
+  input[type="date"]::-webkit-calendar-picker-indicator{ filter: invert(1); opacity:.6; }
+</style>
+</head>
+<body class="min-h-screen text-zinc-100">
+
+<!-- ============== TOP BAR ============== -->
+<header class="sticky top-0 z-40 bg-[#141416]/95 backdrop-blur border-b border-zinc-800">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    <div class="flex items-center justify-between lg:justify-start gap-6">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center">
+          <i data-lucide="shield-check" class="w-5 h-5 text-[#141416]"></i>
+        </div>
+        <div class="leading-tight">
+          <p class="font-bold text-white text-sm">PostVenta <span class="text-orange-500">Pro</span></p>
+          <p class="text-[10px] text-zinc-500">Gestión de Reclamos</p>
+        </div>
+      </div>
+
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+        <button class="tab-btn active py-2 flex items-center gap-1.5" data-tab="registrar">
+          <i data-lucide="file-plus-2" class="w-4 h-4"></i> Registrar Caso
+        </button>
+        <button class="tab-btn py-2 flex items-center gap-1.5" data-tab="listado">
+          <i data-lucide="list-checks" class="w-4 h-4"></i> Listado de Casos
+        </button>
+        <button class="tab-btn py-2 flex items-center gap-1.5" data-tab="dashboard">
+          <i data-lucide="gauge" class="w-4 h-4"></i> Dashboard en Vivo
+        </button>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-2 w-full lg:w-auto">
+      <span class="sync-dot bg-zinc-500 shrink-0" id="syncDot"></span>
+      <span id="sheetsonStatus" class="text-xs text-zinc-400 hidden xl:inline">Sheetson sin configurar</span>
+      <button id="btnConfigSheetson" class="btn-secondary shrink-0 !py-1.5 !px-3 text-xs">Configurar Sheetson</button>
+      <button id="btnGuia" class="btn-icon shrink-0" title="Guía de conexión">?</button>
+    </div>
+  </div>
+  <nav class="flex md:hidden items-center justify-around text-xs font-medium border-t border-zinc-800">
+    <button class="tab-btn active py-2.5 flex-1 flex items-center justify-center gap-1" data-tab="registrar"><i data-lucide="file-plus-2" class="w-4 h-4"></i> Registrar</button>
+    <button class="tab-btn py-2.5 flex-1 flex items-center justify-center gap-1" data-tab="listado"><i data-lucide="list-checks" class="w-4 h-4"></i> Listado</button>
+    <button class="tab-btn py-2.5 flex-1 flex items-center justify-center gap-1" data-tab="dashboard"><i data-lucide="gauge" class="w-4 h-4"></i> Dashboard</button>
+  </nav>
+</header>
+
+<main class="max-w-7xl mx-auto px-5 py-6">
+
+  <!-- ============== TAB 1: REGISTRAR CASO ============== -->
+  <section id="tab-registrar" class="tab-panel space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-bold text-white">Registrar nuevo caso</h1>
+        <p class="text-sm text-zinc-500">Completa los datos de recepción del caso de post venta.</p>
+      </div>
+      <span class="badge bg-zinc-800 text-zinc-300">Próximo código: <span id="nextCodigoLabel" class="text-orange-400 ml-1">CASO-0001</span></span>
+    </div>
+
+    <form id="formRegistrar" class="card p-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+
+      <div>
+        <label class="field-label">Empresa *</label>
+        <select required id="f_empresa" class="field-select">
+          <option value="" disabled selected>Selecciona la empresa</option>
+          <option>Twinovo</option><option>Unomasn Perú</option><option>Mini Phone</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="field-label">Canal de Venta *</label>
+        <select required id="f_canal" class="field-select">
+          <option value="" disabled selected>Selecciona un canal</option>
+          <option>Retail</option><option>Marketplace</option><option>Tradicional</option><option>Corporativo</option>
+        </select>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="field-label">Datos del Cliente *</label>
+        <input required type="text" id="f_cliente" class="field-input" placeholder="Nombre, teléfono o razón social del cliente">
+      </div>
+
+      <div>
+        <label class="field-label">Producto *</label>
+        <input required type="text" id="f_producto" class="field-input" placeholder="Ej: Xiaomi Redmi Note 13">
+      </div>
+
+      <div>
+        <label class="field-label">N° de Serie *</label>
+        <input required type="text" id="f_serie" class="field-input" placeholder="Ej: SN-88231XX">
+      </div>
+
+      <div>
+        <label class="field-label">SKU *</label>
+        <input required type="text" id="f_sku" class="field-input" placeholder="Ej: XM-RN13-256">
+      </div>
+
+      <div>
+        <label class="field-label">Fecha de Venta *</label>
+        <input required type="date" id="f_fechaVenta" class="field-input">
+      </div>
+
+      <div>
+        <label class="field-label">N° de Documento de Referencia *</label>
+        <input required type="text" id="f_documento" class="field-input" placeholder="Boleta, factura u OC">
+      </div>
+
+      <div>
+        <label class="field-label">Marca *</label>
+        <select required id="f_marca" class="field-select">
+          <option value="" disabled selected>Selecciona una marca</option>
+          <option>XIAOMI</option><option>DEERMA</option><option>AMAZFIT</option><option>HONOR</option>
+          <option>TECNO</option><option>1MORE</option><option>HAYLOU</option><option>QCY</option>
+          <option>MIBRO</option><option>MEIZU</option><option>HP</option><option>ITEL</option>
+          <option>GERM</option><option>MOMOVIDA</option><option>JBL</option><option>HIFUTURE</option>
+          <option>BLACK SHARK</option><option>SOLOHOUR</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="field-label">Motivo de Devolución *</label>
+        <select required id="f_motivo" class="field-select">
+          <option value="" disabled selected>Selecciona un motivo</option>
+          <option>Garantía</option><option>Error de Almacén</option><option>Error de Ecommerce</option>
+          <option>Error de Facturación</option><option>Devolución Marketplace</option>
+          <option>Error de Marketing Digital</option><option>Otros</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="field-label">Monto incluido IGV (S/) *</label>
+        <input required type="number" step="0.01" min="0" id="f_monto" class="field-input" placeholder="0.00">
+      </div>
+
+      <div class="flex items-end">
+        <div class="w-full bg-zinc-900/60 border border-dashed border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-500 flex items-center gap-2">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+          Fecha de recepción y código de caso: se registran automáticamente al guardar.
+        </div>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="field-label">Tipo de Falla *</label>
+        <textarea required id="f_tipoFalla" rows="3" class="field-textarea" placeholder="Describe la falla o el motivo reportado por el cliente..."></textarea>
+      </div>
+
+      <div class="md:col-span-2 flex items-center justify-between pt-2 border-t border-zinc-800">
+        <p class="text-xs text-zinc-500 flex items-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i>
+          Los campos de gestión (estatus, solución, tiempos de atención) se completan luego desde "Listado de Casos".
+        </p>
+        <div class="flex gap-2">
+          <button type="reset" class="btn-ghost text-sm">Limpiar</button>
+          <button type="submit" id="btnRegistrar" class="btn-primary text-sm flex items-center gap-1.5">
+            <i data-lucide="save" class="w-4 h-4"></i> Registrar Caso
+          </button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============== TAB 2: LISTADO DE CASOS ============== -->
+  <section id="tab-listado" class="tab-panel hidden space-y-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-bold text-white">Listado de casos</h1>
+        <p class="text-sm text-zinc-500">Filtra, busca y gestiona el ciclo de vida de cada caso.</p>
+      </div>
+      <button id="btnExportar" class="btn-outline text-sm flex items-center gap-1.5 shrink-0">
+        <i data-lucide="download" class="w-4 h-4"></i> Exportar a Excel (CSV)
+      </button>
+    </div>
+
+    <div class="card p-4 grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div class="md:col-span-2 relative">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+        <input type="text" id="filtroBusqueda" class="field-input !pl-9" placeholder="Buscar por código, cliente, SKU o serie...">
+      </div>
+      <select id="filtroEmpresa" class="field-select">
+        <option value="">Todas las empresas</option>
+        <option>Twinovo</option><option>Unomasn Perú</option><option>Mini Phone</option>
+      </select>
+      <select id="filtroCanal" class="field-select">
+        <option value="">Todos los canales</option>
+        <option>Retail</option><option>Marketplace</option><option>Tradicional</option><option>Corporativo</option>
+      </select>
+      <select id="filtroEstado" class="field-select">
+        <option value="">Todos los estatus</option>
+        <option>Pendiente</option><option>En proceso</option><option>Resuelto</option><option>Rechazado</option>
+      </select>
+      <select id="filtroRango" class="field-select">
+        <option value="">Todo rango de atención</option>
+        <option>0 - 05 días</option><option>06 - 10 días</option><option>11 días a más</option>
+      </select>
+    </div>
+
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto max-h-[65vh]">
+        <table class="w-full text-sm text-left whitespace-nowrap">
+          <thead>
+            <tr class="text-zinc-400 text-xs uppercase">
+              <th class="px-4 py-3">Código</th>
+              <th class="px-4 py-3">Recepción</th>
+              <th class="px-4 py-3">Empresa</th>
+              <th class="px-4 py-3">Cliente</th>
+              <th class="px-4 py-3">Canal</th>
+              <th class="px-4 py-3">SKU / Marca</th>
+              <th class="px-4 py-3">Motivo</th>
+              <th class="px-4 py-3">Estatus</th>
+              <th class="px-4 py-3">Rango Atención</th>
+              <th class="px-4 py-3 text-right">Monto (IGV inc.)</th>
+              <th class="px-4 py-3">SLA</th>
+              <th class="px-4 py-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCasosBody"></tbody>
+        </table>
+        <div id="emptyState" class="hidden text-center py-14 text-zinc-500">
+          <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+          <p class="text-sm">Aún no hay casos registrados.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== TAB 3: DASHBOARD ============== -->
+  <section id="tab-dashboard" class="tab-panel hidden space-y-5">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-bold text-white">Dashboard en vivo</h1>
+        <p class="text-sm text-zinc-500">Indicadores financieros y de gestión, actualizados en tiempo real.</p>
+      </div>
+      <button id="btnSincronizar" class="btn-outline text-sm flex items-center gap-1.5 shrink-0">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar manual
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4">
+        <p class="text-xs text-zinc-500 mb-1 flex items-center gap-1.5"><i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Total de Casos</p>
+        <p class="kpi-value" id="kpiTotal">0</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs text-zinc-500 mb-1 flex items-center gap-1.5"><i data-lucide="scale" class="w-3.5 h-3.5"></i> Pendientes vs Resueltos</p>
+        <p class="kpi-value"><span id="kpiPendientes" class="text-orange-400">0</span><span class="text-zinc-600 text-lg"> / </span><span id="kpiResueltos" class="text-emerald-400">0</span></p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs text-zinc-500 mb-1 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Monto en Riesgo Total</p>
+        <p class="kpi-value" id="kpiRiesgo">S/ 0.00</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs text-zinc-500 mb-1 flex items-center gap-1.5"><i data-lucide="banknote" class="w-3.5 h-3.5"></i> Impacto Financiero Real</p>
+        <p class="kpi-value" id="kpiImpacto">S/ 0.00</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card p-4">
+        <p class="section-title mb-3"><i data-lucide="pie-chart" class="w-4 h-4 text-orange-500"></i> Reclamos por Canal de Venta</p>
+        <div class="h-72"><canvas id="chartCanal"></canvas></div>
+      </div>
+      <div class="card p-4">
+        <p class="section-title mb-3"><i data-lucide="bar-chart-3" class="w-4 h-4 text-orange-500"></i> Casos por Empresa</p>
+        <div class="h-72"><canvas id="chartEmpresa"></canvas></div>
+      </div>
+      <div class="card p-4">
+        <p class="section-title mb-3"><i data-lucide="align-horizontal-distribute-center" class="w-4 h-4 text-orange-500"></i> Top de casos por Motivo de Devolución</p>
+        <div class="h-72"><canvas id="chartMotivo"></canvas></div>
+      </div>
+      <div class="card p-4">
+        <p class="section-title mb-3"><i data-lucide="timer" class="w-4 h-4 text-orange-500"></i> Distribución por Rango de Atención</p>
+        <div class="h-72"><canvas id="chartRango"></canvas></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============== MODAL: GESTIONAR CASO ============== -->
+<div id="modalGestionar" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop p-4">
+  <div class="card w-full max-w-3xl max-h-[90vh] overflow-y-auto p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <p class="text-xs text-zinc-500">Gestionar caso</p>
+        <h2 class="text-lg font-bold text-white flex items-center gap-2" id="modalTicketTitle">CASO-0000</h2>
+      </div>
+      <button class="btnCloseModal btn-ghost !p-2" data-modal="modalGestionar"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+
+    <p class="section-title mb-2"><i data-lucide="lock" class="w-4 h-4 text-zinc-500"></i> Datos de recepción (solo lectura)</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 bg-zinc-900/40 p-3 rounded-lg border border-zinc-800">
+      <div><label class="field-label">Empresa</label><input disabled id="m_empresa" class="field-input text-xs"></div>
+      <div><label class="field-label">Fecha de Recepción</label><input disabled id="m_fechaRecepcion" class="field-input text-xs"></div>
+      <div><label class="field-label">Canal de Venta</label><input disabled id="m_canal" class="field-input text-xs"></div>
+      <div><label class="field-label">Cliente</label><input disabled id="m_cliente" class="field-input text-xs"></div>
+      <div><label class="field-label">Producto</label><input disabled id="m_producto" class="field-input text-xs"></div>
+      <div><label class="field-label">N° de Serie</label><input disabled id="m_serie" class="field-input text-xs"></div>
+      <div><label class="field-label">SKU</label><input disabled id="m_sku" class="field-input text-xs"></div>
+      <div><label class="field-label">Marca</label><input disabled id="m_marca" class="field-input text-xs"></div>
+      <div><label class="field-label">Fecha de Venta</label><input disabled id="m_fechaVenta" class="field-input text-xs"></div>
+      <div><label class="field-label">N° Documento Ref.</label><input disabled id="m_documento" class="field-input text-xs"></div>
+      <div><label class="field-label">Motivo de Devolución</label><input disabled id="m_motivo" class="field-input text-xs"></div>
+      <div><label class="field-label">Monto incluido IGV</label><input disabled id="m_monto" class="field-input text-xs"></div>
+      <div class="md:col-span-3"><label class="field-label">Tipo de Falla</label><textarea disabled id="m_tipoFalla" rows="2" class="field-textarea text-xs"></textarea></div>
+    </div>
+
+    <p class="section-title mb-2"><i data-lucide="pencil" class="w-4 h-4 text-orange-500"></i> Seguimiento y gestión</p>
+    <form id="formGestionar" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <input type="hidden" id="m_id">
+
+      <div>
+        <label class="field-label">Estatus Final</label>
+        <select id="m_estado" class="field-select">
+          <option>Pendiente</option><option>En proceso</option><option>Resuelto</option><option>Rechazado</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Tipo de Almacén</label>
+        <select id="m_tipoAlmacen" class="field-select">
+          <option value="">Sin definir</option>
+          <option>Nuevos</option><option>Seminuevos</option><option>Consignación</option><option>Averiados</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Solución</label>
+        <select id="m_solucion" class="field-select">
+          <option value="">Sin definir</option>
+          <option>Nota de crédito</option><option>Reparación</option><option>No procede</option><option>Cambio</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Fecha de Respuesta</label>
+        <input type="date" id="m_fechaRespuesta" class="field-input">
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="field-label">Observación Post Venta <span class="text-zinc-500 font-normal normal-case">(gestión pendiente para cerrar el caso)</span></label>
+        <textarea id="m_observacion" rows="3" class="field-textarea" placeholder="Ej: En espera de confirmación del almacén para el cambio..."></textarea>
+      </div>
+
+      <div class="md:col-span-2 grid grid-cols-2 gap-3 bg-zinc-900/40 p-3 rounded-lg border border-dashed border-zinc-700">
+        <div>
+          <label class="field-label flex items-center gap-1"><i data-lucide="calculator" class="w-3 h-3"></i> Tiempo de Atención (automático)</label>
+          <input disabled id="m_tiempoAtencion" class="field-input text-xs" value="—">
+        </div>
+        <div>
+          <label class="field-label flex items-center gap-1"><i data-lucide="calculator" class="w-3 h-3"></i> Rango de Atención (automático)</label>
+          <input disabled id="m_rangoAtencion" class="field-input text-xs" value="—">
+        </div>
+      </div>
+
+      <div class="md:col-span-2 flex items-center justify-between pt-3 border-t border-zinc-800">
+        <p class="text-xs text-zinc-500 flex items-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i>
+          El tiempo y rango de atención se calculan solos al ingresar la Fecha de Respuesta.
+        </p>
+        <div class="flex gap-2">
+          <button type="button" class="btnCloseModal btn-ghost text-sm" data-modal="modalGestionar">Cancelar</button>
+          <button type="submit" class="btn-primary text-sm flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i> Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============== MODAL: CONFIGURAR SHEETSON ============== -->
+<div id="modalConfigSheetson" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop p-4">
+  <div class="card w-full max-w-xl max-h-[90vh] overflow-y-auto p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="cloud-cog" class="w-5 h-5 text-orange-500"></i> Configurar Sheetson</h2>
+      <button class="btnCloseModal btn-ghost !p-2" data-modal="modalConfigSheetson"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <p class="text-sm text-zinc-400 mb-4">Completa estos 3 datos con la información que aparece en tu panel de Sheetson. La configuración queda guardada solamente en este navegador.</p>
+
+    <div class="space-y-3">
+      <div>
+        <label class="field-label">API Key</label>
+        <input type="password" id="sheetsonApiKeyInput" class="field-input" placeholder="Pega aquí tu API Key de Sheetson">
+      </div>
+      <div>
+        <label class="field-label">ID de la hoja de cálculo</label>
+        <input type="text" id="sheetsonSpreadsheetIdInput" class="field-input" placeholder="Ej.: 1ZuCSWF1Q_WGENZ...">
+        <p class="text-[11px] text-zinc-500 mt-1">Es el ID largo que aparece en el panel de Sheetson o en la URL de Google Sheets.</p>
+      </div>
+      <div>
+        <label class="field-label">Nombre de la pestaña</label>
+        <input type="text" id="sheetsonSheetNameInput" class="field-input" placeholder="Ej.: Base PostVenta Pro">
+        <p class="text-[11px] text-zinc-500 mt-1">Debe coincidir exactamente con el nombre de la pestaña de Google Sheets.</p>
+      </div>
+    </div>
+
+    <div class="mt-4 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-xs text-orange-200 flex gap-2">
+      <i data-lucide="shield-alert" class="w-4 h-4 shrink-0 text-orange-400"></i>
+      <span>Para esta versión, la API Key se guarda en el navegador y se usa desde la página. No publiques esta página como un sitio abierto si necesitas mantener esa clave privada.</span>
+    </div>
+
+    <div class="flex gap-2 mt-5">
+      <button id="btnProbarSheetson" class="btn-secondary flex-1">Probar conexión</button>
+      <button id="btnGuardarSheetson" class="btn-primary flex-1">Guardar y conectar</button>
+    </div>
+    <button id="btnDesconectarSheetson" class="btn-ghost w-full mt-2 text-red-400">Desconectar Sheetson de este navegador</button>
+  </div>
+</div>
+
+<!-- ============== MODAL: GUÍA DE CONEXIÓN ============== -->
+<div id="modalGuia" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop p-4">
+  <div class="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="cloud-cog" class="w-5 h-5 text-orange-500"></i> Conectar tu Google Sheet con Sheetson</h2>
+      <button class="btnCloseModal btn-ghost !p-2" data-modal="modalGuia"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <p class="text-sm text-zinc-400 mb-4">Tu pantalla nueva de Sheetson muestra tres datos que necesitamos: <b class="text-white">API Key</b>, <b class="text-white">ID de la hoja de cálculo</b> y <b class="text-white">Nombre de la hoja</b>.</p>
+    <ol class="space-y-3 text-sm">
+      <li class="flex gap-3"><span class="w-6 h-6 shrink-0 rounded-full bg-orange-500 text-[#141416] font-bold text-xs flex items-center justify-center">1</span>
+        <span>En <b class="text-white">Google Sheets</b>, usa la pestaña que contiene los casos y deja en la primera fila estos encabezados: <code class="text-orange-400 text-xs">id, fechaRecepcion, empresa, canal, cliente, producto, serie, sku, fechaVenta, documento, marca, motivo, monto, tipoFalla, estado, tipoAlmacen, solucion, fechaRespuesta, observacion, tiempoAtencion, rangoAtencion</code>.</span>
+      </li>
+      <li class="flex gap-3"><span class="w-6 h-6 shrink-0 rounded-full bg-orange-500 text-[#141416] font-bold text-xs flex items-center justify-center">2</span>
+        <span>En tu panel de <b class="text-white">Sheetson</b>, copia la <b class="text-white">API Key</b>, el <b class="text-white">ID de la hoja de cálculo</b> y el <b class="text-white">Nombre de la hoja</b>. La API actual usa el nombre de la pestaña en la ruta y el ID de la hoja de cálculo en el encabezado <code class="text-orange-400 text-xs">X-Spreadsheet-Id</code>.</span>
+      </li>
+      <li class="flex gap-3"><span class="w-6 h-6 shrink-0 rounded-full bg-orange-500 text-[#141416] font-bold text-xs flex items-center justify-center">3</span>
+        <span>En <b class="text-white">cada laptop</b>, pulsa <b class="text-white">Configurar Sheetson</b>, coloca esos tres datos y pulsa <b class="text-white">Guardar y conectar</b>.</span>
+      </li>
+      <li class="flex gap-3"><span class="w-6 h-6 shrink-0 rounded-full bg-orange-500 text-[#141416] font-bold text-xs flex items-center justify-center">4</span>
+        <span>El sistema consultará automáticamente la hoja cada <b class="text-white">10 segundos</b> cuando estés viendo el listado o el dashboard. Sheetson no ofrece sincronización en tiempo real, por lo que aquí usamos consulta periódica.</span>
+      </li>
+    </ol>
+    <div class="mt-4 bg-zinc-900/60 border border-dashed border-zinc-700 rounded-lg p-3 text-xs text-zinc-500 flex gap-2">
+      <i data-lucide="lightbulb" class="w-4 h-4 shrink-0 text-orange-500"></i>
+      <span>La API de Sheetson usa <code class="text-orange-400">POST</code> para crear filas y <code class="text-orange-400">PUT</code> con el número de fila para actualizar una fila existente. Esta versión del sistema ya está preparada para eso.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============== TOAST ============== -->
+<div id="toast" class="fixed bottom-5 right-5 z-[60] hidden">
+  <div class="card px-4 py-3 flex items-center gap-2 border-orange-500/40 shadow-xl">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-orange-500"></i>
+    <span id="toastMsg" class="text-sm text-zinc-200">Guardado</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'postventa_casos_v3';
+  const COUNTER_KEY = 'postventa_counter_v3';
+  const SHEETSON_API_KEY_STORAGE = 'postventa_sheetson_api_key_v1';
+  const SHEETSON_SPREADSHEET_STORAGE = 'postventa_sheetson_spreadsheet_v1';
+  const SHEETSON_SHEET_STORAGE = 'postventa_sheetson_sheet_v1';
+  const SHEETSON_BASE_URL = 'https://api.sheetson.com';
+  const SLA_HOURS = 48;
+
+  let casos = [];
+  let counter = parseInt(localStorage.getItem(COUNTER_KEY) || '0', 10);
+  let chartCanal, chartEmpresa, chartMotivo, chartRango;
+  let sheetsonApiKey = localStorage.getItem(SHEETSON_API_KEY_STORAGE) || '';
+  let sheetsonSpreadsheetId = localStorage.getItem(SHEETSON_SPREADSHEET_STORAGE) || '';
+  let sheetsonSheetName = localStorage.getItem(SHEETSON_SHEET_STORAGE) || '';
+
+  // ---------- DATOS FICTICIOS DE PRUEBA (modo local, primer arranque) ----------
+  function datosDemo(){
+    const ahora = Date.now();
+    return [
+      {
+        id:'CASO-0001', fechaRecepcion:new Date(ahora - 10*36e5).toISOString(),
+        empresa:'Twinovo', canal:'Marketplace', cliente:'Comercial Andina S.A.C.',
+        producto:'Xiaomi Redmi Note 13', serie:'SN-88231XX', sku:'XM-RN13-256',
+        fechaVenta:'2026-09-18', documento:'F001-004521', marca:'XIAOMI', motivo:'Garantía',
+        monto:899, tipoFalla:'Pantalla con líneas verticales desde el segundo día de uso.',
+        estado:'Pendiente', tipoAlmacen:'', solucion:'', fechaRespuesta:'', observacion:'',
+        tiempoAtencion:null, rangoAtencion:''
+      },
+      {
+        id:'CASO-0002', fechaRecepcion:new Date(ahora - 60*36e5).toISOString(),
+        empresa:'Mini Phone', canal:'Retail', cliente:'Rosa Elena Quispe',
+        producto:'Honor X9', serie:'SN-11209YY', sku:'HN-X9-128',
+        fechaVenta:'2026-09-15', documento:'B002-001873', marca:'HONOR', motivo:'Error de Almacén',
+        monto:699, tipoFalla:'Se entregó color distinto al comprado.',
+        estado:'Pendiente', tipoAlmacen:'Nuevos', solucion:'', fechaRespuesta:'',
+        observacion:'En coordinación con almacén para el canje, pendiente confirmar stock.',
+        tiempoAtencion:null, rangoAtencion:''
+      },
+      {
+        id:'CASO-0003', fechaRecepcion:new Date(ahora - 260*36e5).toISOString(),
+        empresa:'Unomasn Perú', canal:'Corporativo', cliente:'Constructora Vera SAC',
+        producto:'JBL Flip 6', serie:'SN-77120ZZ', sku:'JBL-FLIP6-BLK',
+        fechaVenta:'2026-09-10', documento:'F003-000982', marca:'JBL', motivo:'Error de Facturación',
+        monto:329, tipoFalla:'Se emitió factura con RUC de otra empresa del grupo.',
+        estado:'Resuelto', tipoAlmacen:'Nuevos', solucion:'Nota de crédito',
+        fechaRespuesta:new Date(ahora - 20*36e5).toISOString().slice(0,10),
+        observacion:'Nota de crédito emitida y enviada al cliente.',
+        tiempoAtencion:10, rangoAtencion:'06 - 10 días'
+      }
+    ];
+  }
+
+  // ---------- PERSISTENCIA LOCAL ----------
+  function cargarCasosLocal(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){ return JSON.parse(raw); }
+      const demo = datosDemo();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(demo));
+      if(counter < 3){ counter = 3; localStorage.setItem(COUNTER_KEY, '3'); }
+      return demo;
+    }catch(e){ return []; }
+  }
+  function guardarCasosLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(casos)); }
+  function guardarCounter(){ localStorage.setItem(COUNTER_KEY, String(counter)); }
+  function nextCodigo(){ return 'CASO-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-6) + '-XXX'; }
+
+  // ---------- CAPA API (Sheetson actual) ----------
+  function sheetsonConfigurado(){
+    return Boolean(sheetsonApiKey && sheetsonSpreadsheetId && sheetsonSheetName);
+  }
+
+  function sheetsonEndpoint(rowIndex){
+    const base = SHEETSON_BASE_URL.replace(/\/$/, '');
+    const sheet = encodeURIComponent(sheetsonSheetName);
+    return rowIndex ? `${base}/v2/sheets/${sheet}/${encodeURIComponent(rowIndex)}` : `${base}/v2/sheets/${sheet}`;
+  }
+
+  function sheetsonHeaders(incluirJson = false){
+    const headers = {
+      'Authorization': 'Bearer ' + sheetsonApiKey,
+      'X-Spreadsheet-Id': sheetsonSpreadsheetId
+    };
+    if(incluirJson) headers['Content-Type'] = 'application/json';
+    return headers;
+  }
+
+  function extraerArray(json){
+    if(Array.isArray(json)) return json;
+    if(json && Array.isArray(json.results)) return json.results;
+    if(json && typeof json === 'object'){
+      for(const key in json){ if(Array.isArray(json[key])) return json[key]; }
+    }
+    return [];
+  }
+
+  async function obtenerCasosRemoto(){
+    if(!sheetsonConfigurado()) throw new Error('Sheetson no está configurado');
+
+    // Sheetson devuelve hasta 100 filas por consulta. Recorremos las páginas
+    // para que el listado siga funcionando aunque la hoja tenga muchas filas.
+    const todos = [];
+    let skip = 0;
+    const limit = 100;
+
+    while(true){
+      const url = new URL(sheetsonEndpoint());
+      url.searchParams.set('limit', String(limit));
+      url.searchParams.set('skip', String(skip));
+
+      const res = await fetch(url.toString(), { headers: sheetsonHeaders() });
+      if(!res.ok){
+        let detalle = '';
+        try { detalle = await res.text(); } catch(_){}
+        throw new Error('GET Sheetson ' + res.status + (detalle ? ': ' + detalle.slice(0,180) : ''));
+      }
+
+      const json = await res.json();
+      const filas = extraerArray(json);
+      todos.push(...filas);
+
+      if(filas.length < limit || json.hasNextPage === false) break;
+      skip += limit;
+    }
+
+    return todos.map(normalizarCasoRemoto);
+  }
+
+  function normalizarCasoRemoto(row){
+    const rowIndex = Number(row && row.rowIndex);
+    const copia = Object.assign({}, row || {});
+    delete copia.rowIndex;
+    return Object.assign({
+      id:'', fechaRecepcion:new Date().toISOString(), empresa:'', canal:'', cliente:'', producto:'',
+      serie:'', sku:'', fechaVenta:'', documento:'', marca:'', motivo:'', monto:0, tipoFalla:'',
+      estado:'Pendiente', tipoAlmacen:'', solucion:'', fechaRespuesta:'', observacion:'',
+      tiempoAtencion:null, rangoAtencion:''
+    }, copia, { _rowIndex: Number.isFinite(rowIndex) && rowIndex > 1 ? rowIndex : null });
+  }
+
+  function prepararCasoParaApi(caso){
+    const copia = Object.assign({}, caso);
+    delete copia._rowIndex;
+    delete copia.rowIndex;
+    return copia;
+  }
+
+  async function enviarAApi(caso, esNuevo){
+    if(!sheetsonConfigurado()) throw new Error('Sheetson no está configurado');
+
+    const rowIndex = caso._rowIndex;
+    if(!esNuevo && !rowIndex){
+      throw new Error('No se encontró el número de fila de Sheetson para actualizar este caso');
+    }
+
+    const url = sheetsonEndpoint(esNuevo ? null : rowIndex);
+    const res = await fetch(url, {
+      method: esNuevo ? 'POST' : 'PUT',
+      headers: sheetsonHeaders(true),
+      body: JSON.stringify(prepararCasoParaApi(caso))
+    });
+
+    if(!res.ok){
+      let detalle = '';
+      try { detalle = await res.text(); } catch(_){}
+      throw new Error('Guardado Sheetson ' + res.status + (detalle ? ': ' + detalle.slice(0,180) : ''));
+    }
+
+    return await res.json().catch(() => ({}));
+  }
+
+  function actualizarSyncDot(estado){
+    const dot = document.getElementById('syncDot');
+    const status = document.getElementById('sheetsonStatus');
+    dot.className = 'sync-dot shrink-0 ' + (estado==='ok'?'bg-emerald-500':estado==='error'?'bg-red-500 animate-pulse':'bg-zinc-500');
+    dot.title = estado==='ok'?'Conectado a Sheetson':estado==='error'?'Error de conexión con Sheetson':'Modo local (sin Sheetson)';
+    if(status){
+      status.textContent = estado==='ok' ? ('Sheetson: ' + sheetsonSheetName) : estado==='error' ? 'Sheetson: error de conexión' : 'Sheetson sin configurar';
+      status.className = 'text-xs hidden xl:inline ' + (estado==='ok' ? 'text-emerald-400' : estado==='error' ? 'text-red-400' : 'text-zinc-400');
+    }
+  }
+
+  async function recargarDatos(mostrarToast){
+    if(sheetsonConfigurado()){
+      try{
+        casos = await obtenerCasosRemoto();
+        actualizarSyncDot('ok');
+        if(mostrarToast) showToast('Datos sincronizados con Sheetson');
+      }catch(e){
+        console.error(e);
+        actualizarSyncDot('error');
+        casos = cargarCasosLocal();
+        if(mostrarToast) showToast('No se pudo conectar a Sheetson. Se muestran los datos locales.');
+      }
+    } else {
+      actualizarSyncDot('local');
+      casos = cargarCasosLocal();
+    }
+    renderTable(); renderDashboard(); lucide.createIcons();
+  }
+
+  // ---------- UTILIDADES ----------
+  function money(n){ return 'S/ ' + (Number(n)||0).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function fmtDate(iso){ if(!iso) return '—'; const d = new Date(iso); return d.toLocaleString('es-PE', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
+  function fmtSoloFecha(str){ if(!str) return '—'; return new Date(str + 'T00:00:00').toLocaleDateString('es-PE'); }
+  function hoursSince(iso){ return (Date.now() - new Date(iso).getTime()) / 36e5; }
+  function isUrgent(caso){ return caso.estado === 'Pendiente' && hoursSince(caso.fechaRecepcion) > SLA_HOURS; }
+  function calcularRango(dias){
+    if(dias === null || dias === undefined || isNaN(dias)) return '';
+    if(dias <= 5) return '0 - 05 días';
+    if(dias <= 10) return '06 - 10 días';
+    return '11 días a más';
+  }
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> t.classList.add('hidden'), 2800);
+  }
+  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+
+  // ---------- TABS ----------
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+  function switchTab(name){
+    tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    tabPanels.forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+    if(name === 'listado') renderTable();
+    if(name === 'dashboard') renderDashboard();
+    if(name === 'registrar') document.getElementById('nextCodigoLabel').textContent = nextCodigo();
+    lucide.createIcons();
+  }
+  tabButtons.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+  // ---------- MODALES ----------
+  function openModal(id){ const m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+  function closeModal(id){ const m = document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+  document.querySelectorAll('.btnCloseModal').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.modal)));
+  document.getElementById('btnGuia').addEventListener('click', () => openModal('modalGuia'));
+  [document.getElementById('modalGestionar'), document.getElementById('modalGuia')].forEach(m => {
+    m.addEventListener('click', (e) => { if(e.target === m) closeModal(m.id); });
+  });
+
+  // ---------- CONFIGURACIÓN SHEETSON ----------
+  const sheetsonApiKeyInput = document.getElementById('sheetsonApiKeyInput');
+  const sheetsonSpreadsheetIdInput = document.getElementById('sheetsonSpreadsheetIdInput');
+  const sheetsonSheetNameInput = document.getElementById('sheetsonSheetNameInput');
+
+  function cargarConfigSheetsonEnModal(){
+    sheetsonApiKeyInput.value = sheetsonApiKey;
+    sheetsonSpreadsheetIdInput.value = sheetsonSpreadsheetId;
+    sheetsonSheetNameInput.value = sheetsonSheetName;
+  }
+
+  function leerConfigSheetsonDelModal(){
+    return {
+      apiKey: sheetsonApiKeyInput.value.trim(),
+      spreadsheetId: sheetsonSpreadsheetIdInput.value.trim(),
+      sheetName: sheetsonSheetNameInput.value.trim()
+    };
+  }
+
+  function aplicarConfigSheetson(config){
+    sheetsonApiKey = config.apiKey;
+    sheetsonSpreadsheetId = config.spreadsheetId;
+    sheetsonSheetName = config.sheetName;
+    if(sheetsonApiKey) localStorage.setItem(SHEETSON_API_KEY_STORAGE, sheetsonApiKey);
+    else localStorage.removeItem(SHEETSON_API_KEY_STORAGE);
+    if(sheetsonSpreadsheetId) localStorage.setItem(SHEETSON_SPREADSHEET_STORAGE, sheetsonSpreadsheetId);
+    else localStorage.removeItem(SHEETSON_SPREADSHEET_STORAGE);
+    if(sheetsonSheetName) localStorage.setItem(SHEETSON_SHEET_STORAGE, sheetsonSheetName);
+    else localStorage.removeItem(SHEETSON_SHEET_STORAGE);
+  }
+
+  async function probarConfigSheetson(config, mostrarResultado = true){
+    if(!config.apiKey || !config.spreadsheetId || !config.sheetName){
+      if(mostrarResultado) showToast('Completa API Key, ID de hoja y nombre de pestaña.');
+      return false;
+    }
+    try{
+      const url = new URL(SHEETSON_BASE_URL + '/v2/sheets/' + encodeURIComponent(config.sheetName));
+      url.searchParams.set('limit', '1');
+      url.searchParams.set('skip', '0');
+      const res = await fetch(url.toString(), {
+        headers: {
+          'Authorization': 'Bearer ' + config.apiKey,
+          'X-Spreadsheet-Id': config.spreadsheetId
+        }
+      });
+      if(!res.ok){
+        const detalle = await res.text().catch(() => '');
+        throw new Error(res.status + (detalle ? ' - ' + detalle.slice(0,160) : ''));
+      }
+      if(mostrarResultado) showToast('Conexión con Sheetson correcta.');
+      return true;
+    }catch(err){
+      console.error(err);
+      if(mostrarResultado) showToast('No se pudo conectar: revisa la API Key, ID y nombre de pestaña.');
+      return false;
+    }
+  }
+
+  cargarConfigSheetsonEnModal();
+
+  document.getElementById('btnConfigSheetson').addEventListener('click', () => {
+    cargarConfigSheetsonEnModal();
+    openModal('modalConfigSheetson');
+    lucide.createIcons();
+  });
+
+  document.getElementById('btnGuardarSheetson').addEventListener('click', async () => {
+    const config = leerConfigSheetsonDelModal();
+    const btn = document.getElementById('btnGuardarSheetson');
+    btn.disabled = true;
+    try{
+      const ok = await probarConfigSheetson(config, true);
+      if(!ok) return;
+      aplicarConfigSheetson(config);
+      closeModal('modalConfigSheetson');
+      await recargarDatos(true);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('btnProbarSheetson').addEventListener('click', async () => {
+    const btn = document.getElementById('btnProbarSheetson');
+    btn.disabled = true;
+    try{ await probarConfigSheetson(leerConfigSheetsonDelModal(), true); }
+    finally{ btn.disabled = false; }
+  });
+
+  document.getElementById('btnDesconectarSheetson').addEventListener('click', () => {
+    aplicarConfigSheetson({apiKey:'', spreadsheetId:'', sheetName:''});
+    closeModal('modalConfigSheetson');
+    recargarDatos(true);
+    showToast('Sheetson desconectado en este navegador.');
+  });
+
+  document.getElementById('btnSincronizar').addEventListener('click', () => recargarDatos(true));
+
+  // ---------- FORM: REGISTRAR CASO ----------
+  document.getElementById('formRegistrar').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const btn = document.getElementById('btnRegistrar');
+    counter += 1;
+    guardarCounter();
+    const nuevo = {
+      id: 'CASO-' + new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14) + '-' + Math.random().toString(36).slice(2,6).toUpperCase(),
+      fechaRecepcion: new Date().toISOString(),
+      empresa: document.getElementById('f_empresa').value,
+      canal: document.getElementById('f_canal').value,
+      cliente: document.getElementById('f_cliente').value.trim(),
+      producto: document.getElementById('f_producto').value.trim(),
+      serie: document.getElementById('f_serie').value.trim(),
+      sku: document.getElementById('f_sku').value.trim(),
+      fechaVenta: document.getElementById('f_fechaVenta').value,
+      documento: document.getElementById('f_documento').value.trim(),
+      marca: document.getElementById('f_marca').value,
+      motivo: document.getElementById('f_motivo').value,
+      monto: parseFloat(document.getElementById('f_monto').value) || 0,
+      tipoFalla: document.getElementById('f_tipoFalla').value.trim(),
+      estado: 'Pendiente', tipoAlmacen: '', solucion: '', fechaRespuesta: '',
+      observacion: '', tiempoAtencion: null, rangoAtencion: ''
+    };
+
+    btn.disabled = true;
+    try{
+      if(sheetsonConfigurado()){
+        await enviarAApi(nuevo, true);
+        await recargarDatos(false);
+        actualizarSyncDot('ok');
+      } else {
+        casos.push(nuevo);
+        guardarCasosLocal();
+      }
+      this.reset();
+      document.getElementById('nextCodigoLabel').textContent = nextCodigo();
+      renderTable(); renderDashboard();
+      showToast('Caso ' + nuevo.id + ' registrado correctamente');
+    }catch(err){
+      counter -= 1; guardarCounter();
+      actualizarSyncDot('error');
+      showToast('No se pudo guardar en Sheetson. Revisa la configuración y tu conexión.');
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- TABLA / FILTROS ----------
+  const tbody = document.getElementById('tablaCasosBody');
+  const emptyState = document.getElementById('emptyState');
+  const filtroBusqueda = document.getElementById('filtroBusqueda');
+  const filtroEmpresa = document.getElementById('filtroEmpresa');
+  const filtroCanal = document.getElementById('filtroCanal');
+  const filtroEstado = document.getElementById('filtroEstado');
+  const filtroRango = document.getElementById('filtroRango');
+  [filtroBusqueda, filtroEmpresa, filtroCanal, filtroEstado, filtroRango].forEach(el => el.addEventListener('input', renderTable));
+
+  const estadoColor = { 'Pendiente':'bg-zinc-600/25 text-zinc-300', 'En proceso':'bg-blue-500/15 text-blue-400', 'Resuelto':'bg-emerald-500/15 text-emerald-400', 'Rechazado':'bg-red-500/15 text-red-400' };
+  const rangoColor = { '0 - 05 días':'bg-emerald-500/15 text-emerald-400', '06 - 10 días':'bg-yellow-500/15 text-yellow-400', '11 días a más':'bg-red-500/15 text-red-400' };
+
+  function renderTable(){
+    const q = filtroBusqueda.value.trim().toLowerCase();
+    const fem = filtroEmpresa.value, fc = filtroCanal.value, fe = filtroEstado.value, fr = filtroRango.value;
+
+    const filtrados = casos.filter(c => {
+      if(fem && c.empresa !== fem) return false;
+      if(fc && c.canal !== fc) return false;
+      if(fe && c.estado !== fe) return false;
+      if(fr && c.rangoAtencion !== fr) return false;
+      if(q && !(c.id.toLowerCase().includes(q) || c.cliente.toLowerCase().includes(q) || (c.sku||'').toLowerCase().includes(q) || (c.serie||'').toLowerCase().includes(q))) return false;
+      return true;
+    }).sort((a,b) => new Date(b.fechaRecepcion) - new Date(a.fechaRecepcion));
+
+    tbody.innerHTML = '';
+    emptyState.classList.toggle('hidden', casos.length !== 0);
+
+    filtrados.forEach(c => {
+      const urgente = isUrgent(c);
+      const tr = document.createElement('tr');
+      tr.className = urgente ? 'row-urgent' : '';
+      tr.innerHTML = `
+        <td class="px-4 py-3 font-semibold text-white">${c.id}</td>
+        <td class="px-4 py-3 text-zinc-400 text-xs">${fmtDate(c.fechaRecepcion)}</td>
+        <td class="px-4 py-3 text-xs text-zinc-400">${c.empresa || '—'}</td>
+        <td class="px-4 py-3">${escapeHtml(c.cliente)}</td>
+        <td class="px-4 py-3 text-xs text-zinc-400">${c.canal}</td>
+        <td class="px-4 py-3 text-xs text-zinc-400">${escapeHtml(c.sku || '—')}<br><span class="text-zinc-600">${c.marca || ''}</span></td>
+        <td class="px-4 py-3 text-xs text-zinc-400">${c.motivo || '—'}</td>
+        <td class="px-4 py-3"><span class="badge ${estadoColor[c.estado]||''}">${c.estado}</span></td>
+        <td class="px-4 py-3">${c.rangoAtencion ? `<span class="badge ${rangoColor[c.rangoAtencion]||''}">${c.rangoAtencion}</span>` : '<span class="text-xs text-zinc-600">—</span>'}</td>
+        <td class="px-4 py-3 text-right text-zinc-200">${money(c.monto)}</td>
+        <td class="px-4 py-3">${urgente ? '<span class="badge bg-red-500/15 text-red-400"><span class="pulse-dot animate-pulse"></span> ¡URGENTE +48h!</span>' : '<span class="text-xs text-zinc-600">OK</span>'}</td>
+        <td class="px-4 py-3 text-center"><button class="btnGestionar btn-outline !py-1.5 !px-3 text-xs" data-id="${c.id}">Gestionar</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.btnGestionar').forEach(btn => btn.addEventListener('click', () => openGestionModal(btn.dataset.id)));
+  }
+
+  // ---------- MODAL GESTIONAR ----------
+  function recalcularTiempoAtencion(){
+    const id = document.getElementById('m_id').value;
+    const c = casos.find(x => x.id === id);
+    if(!c) return;
+    const fechaRespuesta = document.getElementById('m_fechaRespuesta').value;
+    if(!fechaRespuesta){
+      document.getElementById('m_tiempoAtencion').value = '—';
+      document.getElementById('m_rangoAtencion').value = '—';
+      return;
+    }
+    const recepcion = new Date(c.fechaRecepcion); recepcion.setHours(0,0,0,0);
+    const respuesta = new Date(fechaRespuesta + 'T00:00:00');
+    let dias = Math.round((respuesta - recepcion) / 86400000);
+    if(dias < 0) dias = 0;
+    const rango = calcularRango(dias);
+    document.getElementById('m_tiempoAtencion').value = dias + (dias === 1 ? ' día' : ' días');
+    document.getElementById('m_rangoAtencion').value = rango;
+  }
+
+  const selEstadoModal = document.getElementById('m_estado');
+  const inputFechaRespuestaModal = document.getElementById('m_fechaRespuesta');
+  selEstadoModal.addEventListener('change', () => {
+    const cierraCaso = selEstadoModal.value === 'Resuelto' || selEstadoModal.value === 'Rechazado';
+    if(cierraCaso && !inputFechaRespuestaModal.value){
+      inputFechaRespuestaModal.value = new Date().toISOString().slice(0,10);
+    }
+    recalcularTiempoAtencion();
+  });
+  inputFechaRespuestaModal.addEventListener('change', recalcularTiempoAtencion);
+
+  function openGestionModal(id){
+    const c = casos.find(x => x.id === id);
+    if(!c) return;
+    document.getElementById('modalTicketTitle').textContent = c.id;
+    document.getElementById('m_id').value = c.id;
+    document.getElementById('m_empresa').value = c.empresa || '—';
+    document.getElementById('m_fechaRecepcion').value = fmtDate(c.fechaRecepcion);
+    document.getElementById('m_canal').value = c.canal;
+    document.getElementById('m_cliente').value = c.cliente;
+    document.getElementById('m_producto').value = c.producto || '—';
+    document.getElementById('m_serie').value = c.serie || '—';
+    document.getElementById('m_sku').value = c.sku || '—';
+    document.getElementById('m_marca').value = c.marca || '—';
+    document.getElementById('m_fechaVenta').value = fmtSoloFecha(c.fechaVenta);
+    document.getElementById('m_documento').value = c.documento || '—';
+    document.getElementById('m_motivo').value = c.motivo || '—';
+    document.getElementById('m_monto').value = money(c.monto);
+    document.getElementById('m_tipoFalla').value = c.tipoFalla || '';
+
+    selEstadoModal.value = c.estado || 'Pendiente';
+    document.getElementById('m_tipoAlmacen').value = c.tipoAlmacen || '';
+    document.getElementById('m_solucion').value = c.solucion || '';
+    inputFechaRespuestaModal.value = c.fechaRespuesta || '';
+    document.getElementById('m_observacion').value = c.observacion || '';
+    recalcularTiempoAtencion();
+
+    openModal('modalGestionar');
+    lucide.createIcons();
+  }
+
+  document.getElementById('formGestionar').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const id = document.getElementById('m_id').value;
+    const c = casos.find(x => x.id === id);
+    if(!c) return;
+
+    const fechaRespuesta = inputFechaRespuestaModal.value;
+    let tiempoAtencion = null, rangoAtencion = '';
+    if(fechaRespuesta){
+      const recepcion = new Date(c.fechaRecepcion); recepcion.setHours(0,0,0,0);
+      const respuesta = new Date(fechaRespuesta + 'T00:00:00');
+      tiempoAtencion = Math.max(0, Math.round((respuesta - recepcion) / 86400000));
+      rangoAtencion = calcularRango(tiempoAtencion);
+    }
+
+    const actualizado = Object.assign({}, c, {
+      estado: selEstadoModal.value,
+      tipoAlmacen: document.getElementById('m_tipoAlmacen').value,
+      solucion: document.getElementById('m_solucion').value,
+      fechaRespuesta: fechaRespuesta,
+      observacion: document.getElementById('m_observacion').value.trim(),
+      tiempoAtencion: tiempoAtencion,
+      rangoAtencion: rangoAtencion
+    });
+
+    try{
+      if(sheetsonConfigurado()){
+        await enviarAApi(actualizado, false);
+        await recargarDatos(false);
+        actualizarSyncDot('ok');
+      } else {
+        Object.assign(c, actualizado);
+        guardarCasosLocal();
+      }
+      closeModal('modalGestionar');
+      renderTable(); renderDashboard();
+      showToast('Caso ' + actualizado.id + ' actualizado');
+    }catch(err){
+      actualizarSyncDot('error');
+      showToast('No se pudo guardar en Sheetson. Intenta sincronizar nuevamente.');
+    }
+  });
+
+  // ---------- EXPORTAR CSV ----------
+  document.getElementById('btnExportar').addEventListener('click', () => {
+    const headers = ['Codigo','FechaRecepcion','Empresa','Canal','Cliente','Producto','NumeroSerie','SKU','FechaVenta','NumeroDocumento','Marca','MotivoDevolucion','TipoFalla','MontoIGV','Estatus','TipoAlmacen','Solucion','FechaRespuesta','ObservacionPostVenta','TiempoAtencionDias','RangoAtencion'];
+    const rows = casos.map(c => [
+      c.id, c.fechaRecepcion, c.empresa, c.canal, c.cliente, c.producto, c.serie, c.sku, c.fechaVenta,
+      c.documento, c.marca, c.motivo, c.tipoFalla, c.monto, c.estado, c.tipoAlmacen, c.solucion,
+      c.fechaRespuesta, c.observacion, c.tiempoAtencion ?? '', c.rangoAtencion
+    ]);
+    const csvContent = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'reclamos_postventa_' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Archivo CSV exportado');
+  });
+
+  // ---------- DASHBOARD ----------
+  function renderDashboard(){
+    const total = casos.length;
+    const pendientes = casos.filter(c => c.estado === 'Pendiente' || c.estado === 'En proceso').length;
+    const resueltos = casos.filter(c => c.estado === 'Resuelto').length;
+    const abiertos = casos.filter(c => c.estado !== 'Resuelto' && c.estado !== 'Rechazado');
+    const montoRiesgo = abiertos.reduce((s,c) => s + (Number(c.monto)||0), 0);
+    const cerradosOk = casos.filter(c => c.estado === 'Resuelto');
+    const impacto = cerradosOk.reduce((s,c) => s + (Number(c.monto)||0), 0);
+
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiPendientes').textContent = pendientes;
+    document.getElementById('kpiResueltos').textContent = resueltos;
+    document.getElementById('kpiRiesgo').textContent = money(montoRiesgo);
+    document.getElementById('kpiImpacto').textContent = money(impacto);
+
+    const canales = ['Retail','Marketplace','Tradicional','Corporativo'];
+    const dataCanal = canales.map(ca => casos.filter(c => c.canal === ca).length);
+
+    const empresas = ['Twinovo','Unomasn Perú','Mini Phone'];
+    const dataEmpresa = empresas.map(em => casos.filter(c => c.empresa === em).length);
+
+    const motivos = ['Garantía','Error de Almacén','Error de Ecommerce','Error de Facturación','Devolución Marketplace','Error de Marketing Digital','Otros'];
+    const dataMotivo = motivos.map(mo => casos.filter(c => c.motivo === mo).length);
+
+    const rangos = ['0 - 05 días','06 - 10 días','11 días a más'];
+    const dataRango = rangos.map(r => casos.filter(c => c.rangoAtencion === r).length);
+
+    const orangeShades = ['#f97316','#fb923c','#fdba74','#78716c'];
+
+    if(chartCanal) chartCanal.destroy();
+    chartCanal = new Chart(document.getElementById('chartCanal'), {
+      type: 'doughnut',
+      data: { labels: canales, datasets: [{ data: dataCanal, backgroundColor: orangeShades, borderColor:'#19191b', borderWidth:2 }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'#a1a1aa', boxWidth:10, font:{size:10} } } } }
+    });
+
+    if(chartEmpresa) chartEmpresa.destroy();
+    chartEmpresa = new Chart(document.getElementById('chartEmpresa'), {
+      type: 'bar',
+      data: { labels: empresas, datasets: [{ label:'N° de casos', data: dataEmpresa, backgroundColor:'#f97316', borderRadius:6, maxBarThickness:50 }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+        scales:{ x:{ ticks:{ color:'#a1a1aa', font:{size:10} }, grid:{ display:false } }, y:{ ticks:{ color:'#a1a1aa' }, grid:{ color:'#27272a' }, beginAtZero:true } } }
+    });
+
+    if(chartMotivo) chartMotivo.destroy();
+    chartMotivo = new Chart(document.getElementById('chartMotivo'), {
+      type: 'bar',
+      data: { labels: motivos, datasets: [{ label:'N° de casos', data: dataMotivo, backgroundColor:'#a1a1aa', borderRadius:6, maxBarThickness:26 }] },
+      options: { indexAxis: 'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+        scales:{ x:{ ticks:{ color:'#a1a1aa' }, grid:{ color:'#27272a' }, beginAtZero:true }, y:{ ticks:{ color:'#e4e4e7', font:{size:10} }, grid:{ display:false } } } }
+    });
+
+    if(chartRango) chartRango.destroy();
+    chartRango = new Chart(document.getElementById('chartRango'), {
+      type: 'doughnut',
+      data: { labels: rangos, datasets: [{ data: dataRango, backgroundColor: ['#22c55e','#eab308','#ef4444'], borderColor:'#19191b', borderWidth:2 }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'#a1a1aa', boxWidth:10, font:{size:10} } } } }
+    });
+  }
+
+  // ---------- INIT ----------
+  document.getElementById('nextCodigoLabel').textContent = nextCodigo();
+  recargarDatos(false);
+  lucide.createIcons();
+
+  // Sincronización periódica: Sheetson no ofrece tiempo real; consultamos
+  // cada 10 segundos mientras el usuario está en Listado o Dashboard.
+  setInterval(() => {
+    const listadoVisible = !document.getElementById('tab-listado').classList.contains('hidden');
+    const dashboardVisible = !document.getElementById('tab-dashboard').classList.contains('hidden');
+    const modalGestionarAbierto = !document.getElementById('modalGestionar').classList.contains('hidden');
+    const modalConfigAbierto = !document.getElementById('modalConfigSheetson').classList.contains('hidden');
+    if(sheetsonConfigurado() && !modalGestionarAbierto && !modalConfigAbierto && (listadoVisible || dashboardVisible) && !document.hidden){
+      recargarDatos(false);
+    }
+  }, 10000);
+})();
+</script>
+</body>
+</html>
